@@ -11,7 +11,7 @@ $mailheader = "From:".$Nom."<".$email.">\r\n";
 
 $recipient = "mlb.hdc@gmail.com";
 
-mail($recipient, $Nom, $Prenom, $Diplomes, $message, $upload, $mailheader) or die("Error!");
+mail($recipient, $mailheader) or die("Error!");
 
 echo'
 
