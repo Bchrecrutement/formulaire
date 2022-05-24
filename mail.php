@@ -5,13 +5,13 @@ $Prenom = $_POST['Prenom'];
 $email = $_POST['email'];
 $Diplomes = $_POST['Diplomes'];
 $upload = $_POST['upload'];
-$message = $_POST['message'];
+
 
 $mailheader = "From:".$Nom."<".$email.">\r\n";
 
 $recipient = "mlb.hdc@gmail.com";
 
-mail($recipient, $Nom, $Prenom, $Diplomes, $message, $upload, $mailheader) or die("Error!");
+mail($recipient, $Nom, $Prenom, $Diplomes, $upload, $mailheader) or die("Error!");
 
 echo'
 
@@ -40,4 +40,3 @@ echo'
 
 
 ?>
-
