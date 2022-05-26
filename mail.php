@@ -1,87 +1,92 @@
 <?php
 
-error_reporting(E_ALL); 
-ini_set("display_errors", 1); //Affichage des erreurs
+error_reporting(E_ALL); ini_set("display_errors", 1); //Display errors
 
-//Eviter les insertions de scripts dans le cas d'un e-mail HTML
-$Nom = htmlentities($_POST['Nom']);
-$Prenom = htmlentities($_POST['Prenom']);
-$email_from = htmlentities($_POST['email']); 
-$Diplomes = htmlentities($_POST['Diplomes']);
-$message = htmlentities($_POST['message']);
+    if (get_magic_quotes_gpc()){  
+        $nom = stripslashes(htmlentities($_POST['nom']));
+        $email_from = stripslashes(htmlentities($_POST['email']));
+        $message = stripslashes(htmlentities($_POST['message']));
+    }else{  
+	//Avoid injections in case of HTML Mail
+        $nom = htmlentities($_POST['nom']);
+        $email_from = htmlentities($_POST['email']); 
+        $message = htmlentities($_POST['message']);
+    }
 
-//Verifie si le fournisseur prend en charge les r
-if(preg_match("#@(hotmail|live|msn).[a-z]{2,4}$#", $email_from)){
-    $passage_ligne = "\n";
-}else{
-    $passage_ligne = "\r\n";
-}
+	//Check if mail host allow \r
+    if(preg_match("#@(hotmail|live|msn).[a-z]{2,4}$#", $email_from))
+    {
+        $passage_ligne = "\n";
+    }
+    else
+    {
+        $passage_ligne = "\r\n";
+    }
 
-$email_to = "mlb.hdc@gmail.com"; //Destinataire
-$email_subject = "Nouveau Candidat"; //Sujet du mail
-$boundary = md5(rand()); // clé aléatoire de limite
+    $email_to = "mlb.hdc@gmail.com"; //Recipient
+    $email_subject = "Contact for you"; //Subject
+    $boundary = md5(rand()); // Random boundary key
 
-function clean_string($string) {
-    $bad = array("content-type","bcc:","to:","cc:","href");
-    return str_replace($bad,"",$string);
-}
+    function clean_string($string) {
+        $bad = array("content-type","bcc:","to:","cc:","href");
+        return str_replace($bad,"",$string);
+    } 
+    
+    $headers = "From: \"".$nom."\"<".$email_from.">" . $passage_ligne; //Sender
+    $headers.= "Reply-to: \"".$nom."\" <".$email_from.">" . $passage_ligne; //Sender
+    $headers.= "MIME-Version: 1.0" . $passage_ligne; //MIME Version
+    $headers.= 'Content-Type: multipart/mixed; boundary='.$boundary .' '. $passage_ligne; //Content (2 versions ex:text/plain et text/html)
 
-$headers = "From: ".$Nom." <".$email_from.">" . $passage_ligne; //Emetteur
-$headers.= "Reply-to: ".$Nom." <".$email_from.">" . $passage_ligne; //Emetteur
-$headers.= "MIME-Version: 1.0" . $passage_ligne; //Version de MIME
-$headers.= 'Content-Type: multipart/mixed; boundary='.$boundary .' '. $passage_ligne; 
-//Contenu du message (alternative pour deux versions ex:text/plain et text/html
-
-$email_message = '--' . $boundary . $passage_ligne; //Séparateur d'ouverture
-$email_message .= "Content-Type: text/plain; charset=utf-8" . $passage_ligne; //Type du contenu
-$email_message .= "Content-Transfer-Encoding: 8bit" . $passage_ligne; //Encodage
-$email_message .= $passage_ligne .clean_string($message). $passage_ligne; //Contenu du message
-
-//Pièce jointe
-    if(isset($_FILES["fichier"]) &&  $_FILES['fichier']['name'] != ""){ //Vérifie sur formulaire envoyé et que le fichier existe
+    $email_message = '--' . $boundary . $passage_ligne; //Opening boundary
+    $email_message .= "Content-Type: text/plain; charset=\"utf-8\"" . $passage_ligne; //Content type
+    $email_message .= "Content-Transfer-Encoding: 8bit" . $passage_ligne; //Encoding
+    $email_message .= $passage_ligne .clean_string($message). $passage_ligne; //Content
+    
+	//Attachment
+    if(isset($_FILES["fichier"]) &&  $_FILES['fichier']['name'] != ""){ //Check if file exists
         $nom_fichier = $_FILES['fichier']['name'];
         $source = $_FILES['fichier']['tmp_name'];
         $type_fichier = $_FILES['fichier']['type'];
         $taille_fichier = $_FILES['fichier']['size'];
                     
-        if($nom_fichier != ".htaccess"){ //Vérifie que ce n'est pas un .htaccess
-if($type_fichier == "image/jpeg" 
+        if($nom_fichier != ".htaccess"){ //Check if it's not a .htaccess file
+			 if($type_fichier == "image/jpeg" 
                 || $type_fichier == "image/pjpeg" 
-                || $type_fichier == "application/pdf"){ //Soit un jpeg soit un pdf
+                || $type_fichier == "application/pdf"){ //Either jpeg or pdf
                  
-                if ($taille_fichier <= 2097152) { //Taille supérieure à Mo (en octets)
-                    $tabRemplacement = array("é"=>"e", "è"=>"e", "à"=>"a"); //Remplacement des caractères spéciaux
+                if ($taille_fichier <= 2097152) { //Size above 2MB
+                    $tabRemplacement = array("é"=>"e", "è"=>"e", "à"=>"a"); //Changing special characters
                     
-                    $handle = fopen($source, 'r'); //Ouverture du fichier
-                    $content = fread($handle, $taille_fichier); //Lecture du fichier
-                    $encoded_content = chunk_split(base64_encode($content)); //Encodage
-                    $f = fclose($handle); //Fermeture du fichier
+                    $handle = fopen($source, 'r'); //File opening
+                    $content = fread($handle, $taille_fichier); //File reading
+                    $encoded_content = chunk_split(base64_encode($content)); //Encoding
+                    $f = fclose($handle); //File closing
                                 
-                    $email_message .= $passage_ligne . "--" . $boundary . $passage_ligne; //Deuxième séparateur d'ouverture
-                    $email_message .= 'Content-type:'.$type_fichier.';name="'.$nom_fichier.'"'. $passage_ligne; //Type de contenu (application/pdf ou image/jpeg)
-                    $email_message .='Content-Disposition: attachment; filename="'.$nom_fichier.'"'. $passage_ligne; //Précision de pièce jointe
-                    $email_message .= 'Content-transfer-encoding:base64'. $passage_ligne; //Encodage
-                    $email_message .= $passage_ligne; //Ligne blanche. IMPORTANT !
-                    $email_message .= $encoded_content. $passage_ligne; //Pièce jointe
+                    $email_message .= $passage_ligne . "--" . $boundary . $passage_ligne; //Second boundary opening
+                    $email_message .= 'Content-type:'.$type_fichier.';name="'.$nom_fichier.'"'."\n"; //Content type (application/pdf or image/jpeg)
+                    $email_message .='Content-Disposition: attachment; filename="'.$nom_fichier.'"'."\n"; //Inform there is an attachment
+                    $email_message .= 'Content-transfer-encoding:base64'."\n"; //Encoding
+                    $email_message .= "\n"; //Blank line. IMPORTANT !
+                    $email_message .= $encoded_content."\n"; //Attachment
 
                 }else{
-//Message d'erreur
+					//Error Message for attachment above 2MB
                     $email_message .= $passage_ligne ."L'utilisateur a tenté de vous envoyer une pièce jointe mais celle ci était superieure à 2Mo.". $passage_ligne;
                 }
             }else{
-//Message d'erreur
+				//Error Message for wrong content type for attachment
                 $email_message .= $passage_ligne ."L'utilisateur a tenté de vous envoyer une pièce jointe mais elle n'était pas au bon format.". $passage_ligne;
             }
         }else{
-//Message d'erreur
+			//Error Message for sending a .htaccess file
             $email_message .= $passage_ligne ."L'utilisateur a tenté de vous envoyer une pièce jointe .htaccess.". $passage_ligne;
         }
     }
-$email_message .= $passage_ligne . "--" . $boundary . "--" . $passage_ligne; //Séparateur de fermeture
-
-if(mail($email_to,$email_subject, $email_message, $headers)==true){  //Envoi du mail
-    header('Location: index.html'); //Redirection
-}
-
+                
+    $email_message .= $passage_ligne . "--" . $boundary . "--" . $passage_ligne; //Closing boundary
+                
+    if(mail($email_to,$email_subject, $email_message, $headers)==true){  //Sending mail
+        header('Location: index.html#contact'); //Redirection
+    }
 
 ?>
