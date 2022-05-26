@@ -12,22 +12,19 @@
     <div class="container">
         <h1>Contactez Nous</h1>
         <p>Faites partie de notre banque de candidats en moins de 3 clics!</p>
-        <form action="mail.php" method="POST">
-            <label for="Nom">Non:</label>
-            <input type="text" name="Nom" id="Nom">
-   <label for="Prenom">Prenom:</label>
-            <input type="text" name="Prenom" id="Prenom">
-            <label for="email">Email:</label>
-            <input type="email" name="email" id="email">
-            <label for="Diplomes">Diplomes:</label>
-            <input type="text" name="Diplomes" id="Diplomes">
-   <label for="upload">DÉPOSEZ VOTRE CV ICI</label>
-   <input required class="required" id="upload" type="file" name="upload" class=contact-form_input">
-            <label for="message">Message</label>
-            <textarea name="message" cols="20" rows="10"></textarea>
-            <input type="submit" value="Envoyer">
-        </form>
+        <form action="mail.php" method="post" enctype="multipart/mixed">
+	<label for="nom">Votre nom</label>
+	<input type="text" name="nom" required/>
+	<label for="email">Votre E-mail</label>
+	<input type="email" name="email" required/>
+	<label for="message">Diplomes et Expérience</label>
+	<textarea name="message" rows="2" cols="50" required></textarea>
+	<label for='fichier'>Ajouter une pièce jointe <span>(jpeg ou pdf, max 2Mo)</span></label>
+        <input type="file" name="fichier" id="fichier">
+	<input type="submit" value="Envoyer">
+</form>
     </div>
 </body>
 </html>
+
 
